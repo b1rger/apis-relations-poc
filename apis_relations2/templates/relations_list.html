@@ -1,0 +1,48 @@
+{% extends basetemplate %}
+{% load relations %}
+
+{% block content %}
+{% if contenttype %}
+  {% with contenttype|contenttypetoclass as model %}
+  <h1 class="text-center">{{ model.name }}</h1>
+  {% endwith %}
+{% endif %}
+{% if object %}
+  <h1 class="text-center">{{ object }}</h1>
+{% endif %}
+{% if not object and not contenttype %}
+{% relations_links collapse=False htmx=False %}
+{% endif %}
+
+{% if object_list %}
+<ul class="list-group">
+{% for object in object_list %}
+<li class="list-group-item">
+
+<div class="row">
+	<div class="col">
+{% if user.is_authenticated %}
+<a href="{% url 'relationupdate' object.id %}">{{ object }}</a>
+{% else %}
+{{ object }}
+{% endif %}
+	</div>
+	<div class="col">
+
+{% with object|modeltocontenttype as contenttype %}
+<button type="button" class="btn btn-sm"><a href="{% url 'relationtype' contenttype.id %}">{{ object.name }} <small>({{ object.name_reverse }})</small></a></button>
+{% endwith %}
+	</div>
+</div>
+{% endfor %}
+</ul>
+{% endif %}
+
+{% if form %}
+{{ form.errors }}
+{{ form.non_field_errors }}
+{% load crispy_forms_tags %}
+{% crispy form %}
+{% endif %}
+
+{% endblock content %}

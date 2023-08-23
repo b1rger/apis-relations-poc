@@ -1,0 +1,22 @@
+{% load render_table from django_tables2 %}
+{% load crispy_forms_tags %}
+Relations from {{ instance }} {% if entity_contenttype %}to {{ entity_contenttype.model }}{% endif %}
+
+{% render_table table %}
+
+{% for rel in relations %}
+<a href="{% url 'relationcreatefrom' rel.contenttype.pk instance.pk %}"
+hx-get="{% url "relationcreatefrompartial" rel.contenttype.pk instance.pk %}"
+hx-target="#modal-here"
+data-toggle="collapse"
+data-target="#collapse-{{rel.classname}}"><span class="badge badge-secondary">{{ rel.class.name }}</span></a>
+{% endfor %}
+{% for rel in relations %}
+<div class="collapse" id="collapse-{{rel.classname}}">
+{% if rel.form %}
+{{ rel.form.errors }}
+{{ rel.form.non_field_errors }}
+{% crispy rel.form %}
+{% endif %}
+</div>
+{% endfor %}

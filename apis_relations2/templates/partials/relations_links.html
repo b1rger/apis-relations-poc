@@ -1,0 +1,40 @@
+{% load relations %}
+{% load crispy_forms_tags %}
+
+{% for rel in relation_types %}
+{% with rel|contenttypetoclass as model %}
+<a href="
+{% if instance %}
+  {% url 'relationtypefrom' rel.pk instance.pk %}
+{% else %}
+  {% url 'relationtype' rel.pk %}
+{% endif %}"
+
+{% if collapse %}data-toggle="collapse" data-target="#collapse-{{rel.model}}"{% endif %}
+
+{% if htmx %}hx-get="
+  {% if instance %}
+    {% url 'relationcreatefrompartial' rel.pk instance.pk %}{% if next %}?next={{ next }}{% endif %}
+  {% else %}
+    {% url 'relationcreate' rel.pk %}
+  {% endif %}" hx-target="#collapse-{{rel.model}}"
+{% endif %}
+
+"><button type="button" class="btn btn-sm">{{ model.name }}</button></a>
+{% endwith %}
+{% endfor %}
+
+{% for rel in relation_types %}
+<div class="collapse" id="collapse-{{ rel.model }}">
+{% if not htmx %}
+{% if collapse %}
+  {% if instance %}
+  {% relation_form rel instance as form %}
+  {% else %}
+  {% relation_form rel as form %}
+  {% endif %}
+  {% crispy form %}
+{% endif %}
+{% endif %}
+</div>
+{% endfor %}
