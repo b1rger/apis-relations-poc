@@ -2,7 +2,7 @@ from django.views.generic.list import ListView
 from django.views.generic.edit import CreateView, FormView, ProcessFormView, FormMixin, ProcessFormView, UpdateView, DeleteView
 from django.views.generic.detail import DetailView
 from django.contrib.contenttypes.models import ContentType
-from django.forms import modelform_factory
+from django.forms import modelform_factory, modelformset_factory
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.http import Http404, HttpResponse
@@ -10,7 +10,7 @@ from django.http import Http404, HttpResponse
 from django_tables2 import SingleTableView, SingleTableMixin
 
 from .models import Relation
-from .forms import RelationForm
+from .forms import RelationForm, RelationFormSet
 from .utils import relation_content_types
 from .tables import RelationTable
 
@@ -45,12 +45,20 @@ class RelationMixin:
     def get_context_data(self, *args, **kwargs):
         ctx = super().get_context_data(*args, **kwargs)
         ctx['contenttype'] = self.contenttype
+        ctx['formset'] = modelformset_factory(self.contenttype.model_class(), form=RelationForm, exclude=[], formset=RelationFormSet)
         return ctx
 
 
 class RelationView(RelationMixin, SingleTableMixin, CreateView):
     template_name = "relations_list.html"
     table_class = RelationTable
+
+    def post(self, request, contenttype, fromsubj, *args, **kwargs):
+        modelformset = modelformset_factory(self.contenttype.model_class(), form=RelationForm, exclude=[], formset=RelationFormSet)
+        formset = modelformset(request.POST)
+        if formset.is_valid():
+            formset.save()
+        return super().post(request)
 
     def get_queryset(self):
         if self.kwargs.get("fromsubj"):

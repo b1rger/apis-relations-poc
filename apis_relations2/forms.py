@@ -1,10 +1,19 @@
-from django.forms import ModelForm
+from django.forms import ModelForm, BaseModelFormSet
 from django.urls import reverse
 from django.shortcuts import get_object_or_404
 from django.contrib.contenttypes.models import ContentType
 
 from crispy_forms.layout import Submit, Layout, Row, Column
 from crispy_forms.helper import FormHelper
+
+class RelationFormSet(BaseModelFormSet):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        obj_contenttype = ContentType.objects.get_for_model(self.model.obj_model)
+        self.queryset = self.model.objects.none()
+        self.helper = FormHelper()
+        self.helper.form_id = f"form_set_{obj_contenttype.name}"
+        self.helper.add_input(Submit('submit', 'Save'))
 
 
 class RelationForm(ModelForm):

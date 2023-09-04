@@ -19,11 +19,24 @@
 {% render_table table %}
 {% endif %}
 
-{% if form %}
-{{ form.errors }}
-{{ form.non_field_errors }}
+{% if formset %}
 {% load crispy_forms_tags %}
-{% crispy form %}
+
+{% crispy formset %}
+
 {% endif %}
+
+<input type="button" value="Add More" id="add_more">
+<div id="empty_form" style="display:none">
+	{{ formset.empty_form|crispy }}
+</div>
+<script>
+$('#add_more').click(function() {
+    // TODO: use formset.helper.form_id for TOTAL_FORMS
+    var form_idx = $('#id_form-TOTAL_FORMS').val();
+    $('#{{ formset.helper.form_id }}').find('div').last().prepend($('#empty_form').html().replace(/__prefix__/g, form_idx));
+    $('#id_form-TOTAL_FORMS').val(parseInt(form_idx) + 1);
+});
+</script>
 
 {% endblock content %}
