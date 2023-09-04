@@ -32,7 +32,8 @@ def relations_table(request, instance=None, contenttype=None):
     return {
             "request": request,
             "instance": instance,
-            "table": RelationTable(existing_relations)
+            "table": RelationTable(existing_relations),
+            "contenttype": contenttype,
     }
 
 

@@ -3,21 +3,25 @@
 
 {% for rel in relation_types %}
 {% with rel|contenttypetoclass as model %}
-<a href="
+
 {% if instance %}
-  {% url 'relationtypefrom' rel.pk instance.pk %}
+  {% url 'relationtypefrom' rel.pk instance.pk as posturl %}
+  {% url 'relationcreatefrompartial' rel.pk instance.pk as hxgeturl %}
 {% else %}
-  {% url 'relationtype' rel.pk %}
-{% endif %}"
+  {% url 'relationtype' rel.pk as posturl %}
+  {% url 'relationcreate' rel.pk as hxgeturl %}
+{% endif %}
 
-{% if collapse %}data-toggle="collapse" data-target="#collapse-{{rel.model}}"{% endif %}
+<a href="{{ posturl }}"
 
-{% if htmx %}hx-get="
-  {% if instance %}
-    {% url 'relationcreatefrompartial' rel.pk instance.pk %}{% if next %}?next={{ next }}{% endif %}
-  {% else %}
-    {% url 'relationcreate' rel.pk %}
-  {% endif %}" hx-target="#collapse-{{rel.model}}"
+{% if collapse %}
+  data-toggle="collapse"
+  data-target="#collapse-{{rel.model}}"
+{% endif %}
+
+{% if htmx %}
+  hx-get="{{hxgeturl}}{% if next %}?next={{next}}{% endif %}"
+  hx-target="#collapse-{{rel.model}}"
 {% endif %}
 
 "><button type="button" class="btn btn-sm">{{ model.name }}</button></a>

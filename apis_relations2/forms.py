@@ -31,3 +31,10 @@ class RelationForm(ModelForm):
             self.helper.form_action += f"?next={next}"
 
         self.helper.add_input(Submit("submit", "Submit", css_class="btn-primary"))
+
+        obj_contenttype = ContentType.objects.get_for_model(self._meta.model.obj_model)
+        self.helper.attrs = {
+            "hx-post": reverse("relationcreatefrompartial", args=[contenttype, fromsubj]),
+            "hx-target": f"#{obj_contenttype.name}_table",
+            "hx-swap": "innerHTML",
+        }

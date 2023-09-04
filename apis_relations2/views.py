@@ -7,9 +7,12 @@ from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.http import Http404
 
+from django_tables2 import SingleTableView
+
 from .models import Relation
 from .forms import RelationForm
 from .utils import relation_content_types
+from .tables import RelationTable
 
 
 class RelationsList(ListView):
@@ -58,12 +61,22 @@ class RelationType(RelationMixin, FormMixin, ListView):
 class RelationCreateViewPartial(RelationMixin, CreateView):
     template_name = "partial.html"
 
+    #def get_success_url(self):
+    #    if self.request.GET.get("next"):
+    #        return self.request.GET.get("next")
+    #    if self.kwargs.get("fromsubj"):
+    #        return get_object_or_404(self.contenttype.model_class().subj_model, id=self.kwargs.get("fromsubj")).get_absolute_url()
+    #    return reverse("relationtype", args=[self.contenttype.pk])
     def get_success_url(self):
-        if self.request.GET.get("next"):
-            return self.request.GET.get("next")
-        if self.kwargs.get("fromsubj"):
-            return get_object_or_404(self.contenttype.model_class().subj_model, id=self.kwargs.get("fromsubj")).get_absolute_url()
-        return reverse("relationtype", args=[self.contenttype.pk])
+        return reverse("relationtablepartial", args=[self.contenttype.pk, self.kwargs.get("fromsubj")])
+
+
+class RelationTablePartial(RelationMixin, SingleTableView):
+    template_name = "partial.html"
+    table_class = RelationTable
+
+    def get_queryset(self):
+        return self.contenttype.model_class().objects.all()
 
 
 class RelationUpdate(UpdateView):
