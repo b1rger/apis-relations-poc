@@ -23,18 +23,20 @@ class RelationForm(ModelForm):
         self.helper = FormHelper(self)
 
         contenttype = ContentType.objects.get_for_model(self._meta.model).pk
-        self.helper.form_action = reverse("relationtype", args=[contenttype])
-        if fromsubj:
-            self.helper.form_action = reverse("relationtypefrom", args=[contenttype, fromsubj])
 
-        if next:
-            self.helper.form_action += f"?next={next}"
+        args = [contenttype,]
+        if fromsubj:
+            args.append(fromsubj)
+        #self.helper.form_action = reverse("relationtypefrom", args=args)
+
+        #if next:
+        #    self.helper.form_action += f"?next={next}"
 
         self.helper.add_input(Submit("submit", "Submit", css_class="btn-primary"))
 
         obj_contenttype = ContentType.objects.get_for_model(self._meta.model.obj_model)
         self.helper.attrs = {
-            "hx-post": reverse("relationcreatefrompartial", args=[contenttype, fromsubj]),
+            "hx-post": reverse("relationpartial", args=args),
             "hx-target": f"#{obj_contenttype.name}_table",
             "hx-swap": "innerHTML",
         }

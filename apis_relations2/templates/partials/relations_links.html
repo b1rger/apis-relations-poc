@@ -6,10 +6,10 @@
 
 {% if instance %}
   {% url 'relationtypefrom' rel.pk instance.pk as posturl %}
-  {% url 'relationcreatefrompartial' rel.pk instance.pk as hxgeturl %}
+  {% url 'relationpartial' rel.pk instance.pk as hxgeturl %}
 {% else %}
   {% url 'relationtype' rel.pk as posturl %}
-  {% url 'relationcreate' rel.pk as hxgeturl %}
+  {% url 'relationpartial' rel.pk as hxgeturl %}
 {% endif %}
 
 <a href="{{ posturl }}"

@@ -101,3 +101,9 @@ def contenttypetoclass(ct: ContentType) -> object:
 @register.filter
 def modeltocontenttype(model: object) -> ContentType:
     return ContentType.objects.get_for_model(model)
+
+
+# This is only used in the table, it could be refactored to exist without the filter
+@register.filter
+def modeltocontenttypename(model: object) -> str:
+    return ContentType.objects.get_for_model(model).name
