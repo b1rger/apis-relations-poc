@@ -5,7 +5,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.forms import modelform_factory
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
-from django.http import Http404
+from django.http import Http404, HttpResponse
 
 from django_tables2 import SingleTableView, SingleTableMixin
 
@@ -15,8 +15,9 @@ from .utils import relation_content_types
 from .tables import RelationTable
 
 
-class RelationsList(ListView):
+class RelationsList(SingleTableView):
     template_name = "relations_list.html"
+    table_class = RelationTable
     model = Relation
 
     def get_queryset(self):
@@ -47,30 +48,31 @@ class RelationMixin:
         return ctx
 
 
-#TODO: rename this to Relation and make it work with and without subj (like the partial version of the view)
-class RelationType(RelationMixin, ProcessFormView, FormMixin, ListView):
+class RelationView(RelationMixin, SingleTableMixin, CreateView):
     template_name = "relations_list.html"
-
-    # we have to explicitly call the ListView.get method, because the
-    # ProcessFormView overrides it in https://github.com/django/django/blob/4f0c0e6fa1ce2e4da9407f122d0c1c27c7f8ad83/django/views/generic/edit.py#L140
-    def get(self, request, *args, **kwargs):
-        return super(ListView, self).get(request, args, kwargs)
+    table_class = RelationTable
 
     def get_queryset(self):
+        if self.kwargs.get("fromsubj"):
+            return self.contenttype.model_class().objects.filter(subj=self.kwargs.get("fromsubj"))
         return self.contenttype.model_class().objects.all()
 
     def get_success_url(self):
         args = [self.contenttype.id,]
-        if self.kwargs.get("fromsubj"):
-            args.append(self.kwargs.get("fromsubj"))
-        return reverse("relationtypefrom", args=args) + "?success"
+        if fromsubj := self.kwargs.get("fromsubj"):
+            args.append(fromsubj)
+        return reverse("relation", args=args)
+
 
 class RelationViewPartial(RelationMixin, SingleTableMixin, CreateView):
     template_name = "partial.html"
     table_class = RelationTable
 
     def get_success_url(self):
-        return reverse("relationpartial", args=[self.contenttype.pk, self.kwargs.get("fromsubj")]) + "?success"
+        url = reverse("relationpartial", args=[self.contenttype.pk, self.kwargs.get("fromsubj")]) + "?success"
+        if next := self.request.GET.get("next"):
+            url += f"&next={next}"
+        return url
 
     def get_context_data(self):
         ctx = super().get_context_data()
@@ -103,6 +105,12 @@ class RelationUpdate(UpdateView):
 class RelationDelete(DeleteView):
     template_name = "confirm_delete.html"
 
+    def delete(self, request, *args, **kwargs):
+        res = super().delete(request, args, kwargs)
+        if 'status_only' in self.request.GET:
+            return HttpResponse()
+        return res
+
     def get_object(self):
         return Relation.objects.get_subclass(id=self.kwargs["pk"])
 
@@ -110,4 +118,4 @@ class RelationDelete(DeleteView):
         if self.request.GET.get("next"):
             return self.request.GET.get("next")
         contenttype = ContentType.objects.get_for_model(self.get_object())
-        return reverse("relationtype", args=[contenttype.id,])
+        return reverse("relation", args=[contenttype.id,])

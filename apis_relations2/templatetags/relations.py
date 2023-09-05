@@ -4,6 +4,8 @@ from django import template
 from django.db.models import Q
 from django.contrib.contenttypes.models import ContentType
 from django.forms import modelform_factory
+from django.templatetags.static import static
+from django.utils.html import format_html
 
 from apis_relations2.tables import RelationTable
 from apis_relations2.models import Relation
@@ -107,3 +109,9 @@ def modeltocontenttype(model: object) -> ContentType:
 @register.filter
 def modeltocontenttypename(model: object) -> str:
     return ContentType.objects.get_for_model(model).name
+
+
+@register.simple_tag
+def relations_css() -> str:
+    cssfile = static("relations.css")
+    return format_html('<link rel="stylesheet" href="{}">', cssfile)

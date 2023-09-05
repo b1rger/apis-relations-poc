@@ -5,8 +5,8 @@ app_name = 'apis_relations2'
 
 urlpatterns = [
         path('relations/all', views.RelationsList.as_view(), name='relations'),
-        path('relationtype/<int:contenttype>', views.RelationType.as_view(), name='relationtype'),
-        path('relationtype/<int:contenttype>/<int:fromsubj>', views.RelationType.as_view(), name='relationtypefrom'),
+        path('relationtype/<int:contenttype>', views.RelationView.as_view(), name='relation'),
+        path('relationtype/<int:contenttype>/<int:fromsubj>', views.RelationView.as_view(), name='relation'),
 
         path('relationtype/<int:contenttype>/partial', views.RelationViewPartial.as_view(), name='relationpartial'),
         path('relationtype/<int:contenttype>/<int:fromsubj>/partial', views.RelationViewPartial.as_view(), name='relationpartial'),
