@@ -6,6 +6,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.forms import modelform_factory
 from django.templatetags.static import static
 from django.utils.html import format_html
+from django_tables2.tables import table_factory
 
 from apis_relations2.tables import RelationTable
 from apis_relations2.models import Relation
@@ -30,10 +31,14 @@ def relations_table(request, instance=None, contenttype=None):
             existing_relations.extend(list(rel.model_class().objects.filter(Q(subj=instance)|Q(obj=instance))))
         else:
             existing_relations.extend(list(rel.model_class().objects.all()))
+
+    table = RelationTable
+    if model:
+        table = table_factory(model, RelationTable)
     return {
             "request": request,
             "instance": instance,
-            "table": RelationTable(existing_relations),
+            "table": table(existing_relations),
             "contenttype": contenttype,
     }
 

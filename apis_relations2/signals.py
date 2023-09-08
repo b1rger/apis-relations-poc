@@ -23,7 +23,6 @@ def addrelation(sender, instance, created, **kwargs):
     model = find_relationtype(instance)
     if model is not None:
         rel, created = model.objects.get_or_create(subj=instance.subj, obj=instance.obj, metadata={'temptriple': instance.pk})
-        print(f"Created: {created}")
         for field in getattr(model, 'temptriple_field_list', []):
             setattr(rel, field, getattr(instance, field, None))
         for field, newfield in getattr(model, 'temptriple_field_mapping', {}).items():
