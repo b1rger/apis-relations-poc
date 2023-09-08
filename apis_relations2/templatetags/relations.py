@@ -72,7 +72,7 @@ def relation_form(relation: ContentType, instance=None):
     return modelform_factory(relation.model_class(), form=RelationForm, exclude=exclude)(initial=initial)
 
 
-def contenttype_related_to(ct: ContentType) -> list[ContentType]:
+def contenttype_can_be_related_to(ct: ContentType) -> list[ContentType]:
     models = set()
     for rel in utils.relation_content_types(any_model=ct.model_class()):
         models.add(rel.model_class().subj_model)
@@ -83,8 +83,20 @@ def contenttype_related_to(ct: ContentType) -> list[ContentType]:
 
 
 @register.simple_tag
-def instance_related_to(instance: object) -> list[ContentType]:
-    return contenttype_related_to(ContentType.objects.get_for_model(instance))
+def instance_can_be_related_to(instance: object) -> list[ContentType]:
+    return contenttype_can_be_related_to(ContentType.objects.get_for_model(instance))
+
+
+@register.simple_tag
+def instance_is_related_to(instance: object) -> list[ContentType]:
+    models = set()
+    for rel in Relation.objects.filter(subj=instance).select_subclasses():
+        models.add(rel.obj_model)
+    for rel in Relation.objects.filter(obj=instance).select_subclasses():
+        models.add(rel.subj_model)
+    contenttypes = ContentType.objects.get_for_models(*models)
+    models = sorted(contenttypes.items(), key=lambda item: item[1].name)
+    return [item[1] for item in models]
 
 
 @register.simple_tag

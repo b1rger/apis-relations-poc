@@ -25,6 +25,8 @@ class RelationsList(SingleTableView):
 
 
 class RelationMixin:
+    reversed = False
+
     def dispatch(self, request, *args, **kwargs):
         self.contenttype = ContentType.objects.get_for_id(kwargs.get("contenttype"))
         # TODO: use utils or check for None
@@ -39,7 +41,7 @@ class RelationMixin:
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs["fromsubj"] = self.kwargs.get("fromsubj")
-        kwargs["toobj"] = self.kwargs.get("toobj")
+        kwargs["reversed"] = self.reversed
         kwargs["next"] = self.request.GET.get("next")
         return kwargs
 
@@ -48,15 +50,17 @@ class RelationMixin:
         ctx['contenttype'] = self.contenttype
         return ctx
 
+    def get_queryset(self):
+        if fromsubj := self.kwargs.get("fromsubj"):
+            if self.reversed:
+                return self.contenttype.model_class().objects.filter(obj=fromsubj)
+            return self.contenttype.model_class().objects.filter(subj=fromsubj)
+        return self.contenttype.model_class().objects.all()
+
 
 class RelationView(RelationMixin, SingleTableMixin, CreateView):
     template_name = "relations_list.html"
     table_class = RelationTable
-
-    def get_queryset(self):
-        if self.kwargs.get("fromsubj"):
-            return self.contenttype.model_class().objects.filter(subj=self.kwargs.get("fromsubj"))
-        return self.contenttype.model_class().objects.all()
 
     def get_success_url(self):
         args = [self.contenttype.id,]
@@ -70,7 +74,10 @@ class RelationViewPartial(RelationMixin, SingleTableMixin, CreateView):
     table_class = RelationTable
 
     def get_success_url(self):
-        url = reverse("relationpartial", args=[self.contenttype.pk, self.kwargs.get("fromsubj")]) + "?success"
+        args = [self.contenttype.pk, self.kwargs.get("fromsubj")]
+        url = reverse("relationpartial", args=args) + "?success"
+        if self.reversed:
+            url = reverse("relationpartialreversed", args=args) + "?success"
         if next := self.request.GET.get("next"):
             url += f"&next={next}"
         return url
@@ -82,11 +89,6 @@ class RelationViewPartial(RelationMixin, SingleTableMixin, CreateView):
         else:
             ctx['table'] = None
         return ctx
-
-    def get_queryset(self):
-        if self.kwargs.get("fromsubj"):
-            return self.contenttype.model_class().objects.filter(subj=self.kwargs.get("fromsubj"))
-        return self.contenttype.model_class().objects.all()
 
 
 class RelationUpdate(UpdateView):

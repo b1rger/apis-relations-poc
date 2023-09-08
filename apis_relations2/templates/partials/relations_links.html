@@ -5,12 +5,11 @@
   {% with rel|contenttypetoclass as model %}
 
   {% if instance %}
+    {% url 'relation' rel.pk instance.pk as posturl %}
+    {% url 'relationpartial' rel.pk instance.pk as hxgeturl %}
     {% if rel in relation_types_reverse %}
-      {% url 'relationto' rel.pk instance.pk as posturl %}
-      {% url 'relationpartialto' rel.pk instance.pk as hxgeturl %}
-    {% else %}
-      {% url 'relation' rel.pk instance.pk as posturl %}
-      {% url 'relationpartial' rel.pk instance.pk as hxgeturl %}
+      {% url 'relationreversed' rel.pk instance.pk as posturl %}
+      {% url 'relationpartialreversed' rel.pk instance.pk as hxgeturl %}
     {% endif %}
   {% else %}
     {% url 'relation' rel.pk as posturl %}
@@ -29,7 +28,7 @@
     hx-target="#collapse-{{rel.model}}"
   {% endif %}
 
-  ><button type="button" class="btn btn-sm">{{ model.name }}</button></a>
+    ><button type="button" class="btn btn-sm">{% if rel in relation_types_reverse %}{{ model.name_reverse }}{% else %}{{ model.name }}{% endif %}</button></a>
   {% endwith %}
 {% endfor %}
 
