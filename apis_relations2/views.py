@@ -39,6 +39,7 @@ class RelationMixin:
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs["fromsubj"] = self.kwargs.get("fromsubj")
+        kwargs["toobj"] = self.kwargs.get("toobj")
         kwargs["next"] = self.request.GET.get("next")
         return kwargs
 

@@ -2,30 +2,35 @@
 {% load crispy_forms_tags %}
 
 {% for rel in relation_types %}
-{% with rel|contenttypetoclass as model %}
+  {% with rel|contenttypetoclass as model %}
 
-{% if instance %}
-  {% url 'relation' rel.pk instance.pk as posturl %}
-  {% url 'relationpartial' rel.pk instance.pk as hxgeturl %}
-{% else %}
-  {% url 'relation' rel.pk as posturl %}
-  {% url 'relationpartial' rel.pk as hxgeturl %}
-{% endif %}
+  {% if instance %}
+    {% if rel in relation_types_reverse %}
+      {% url 'relationto' rel.pk instance.pk as posturl %}
+      {% url 'relationpartialto' rel.pk instance.pk as hxgeturl %}
+    {% else %}
+      {% url 'relation' rel.pk instance.pk as posturl %}
+      {% url 'relationpartial' rel.pk instance.pk as hxgeturl %}
+    {% endif %}
+  {% else %}
+    {% url 'relation' rel.pk as posturl %}
+    {% url 'relationpartial' rel.pk as hxgeturl %}
+  {% endif %}
 
-<a href="{{ posturl }}"
+  <a href="{{ posturl }}"
 
-{% if collapse %}
-  data-toggle="collapse"
-  data-target="#collapse-{{rel.model}}"
-{% endif %}
+  {% if collapse %}
+    data-toggle="collapse"
+    data-target="#collapse-{{rel.model}}"
+  {% endif %}
 
-{% if htmx %}
-  hx-get="{{hxgeturl}}{% if next %}?next={{next}}{% endif %}"
-  hx-target="#collapse-{{rel.model}}"
-{% endif %}
+  {% if htmx %}
+    hx-get="{{hxgeturl}}{% if next %}?next={{next}}{% endif %}"
+    hx-target="#collapse-{{rel.model}}"
+  {% endif %}
 
-"><button type="button" class="btn btn-sm">{{ model.name }}</button></a>
-{% endwith %}
+  ><button type="button" class="btn btn-sm">{{ model.name }}</button></a>
+  {% endwith %}
 {% endfor %}
 
 {% for rel in relation_types %}

@@ -8,17 +8,23 @@ from crispy_forms.helper import FormHelper
 
 
 class RelationForm(ModelForm):
-    def __init__(self, fromsubj=None, next=None, *args, **kwargs):
-        if fromsubj:
-            kwargs["initial"]["subj"] = get_object_or_404(self._meta.model.subj_model, id=fromsubj)
-
+    def __init__(self, fromsubj=None, toobj=None, next=None, *args, **kwargs):
+        #if fromsubj:
+        #    kwargs["initial"]["subj"] = get_object_or_404(self._meta.model.subj_model, id=fromsubj)
         super().__init__(*args, **kwargs)
+
 
         if fromsubj:
             self.fields["subj"].disabled = True
+            self.fields["subj"].initial = get_object_or_404(self._meta.model.subj_model, id=fromsubj)
         else:
             self.fields["subj"].queryset = self._meta.model.subj_model.objects.all()
-        self.fields["obj"].queryset = self._meta.model.obj_model.objects.all()
+
+        if toobj:
+            self.fields["obj"].disabled = True
+            self.fields["obj"].initial = get_object_or_404(self._meta.model.obj_model, id=toobj)
+        else:
+            self.fields["obj"].queryset = self._meta.model.obj_model.objects.all()
 
         self.helper = FormHelper(self)
 

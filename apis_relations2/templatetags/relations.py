@@ -50,6 +50,7 @@ def relations_links(instance=None, contenttype=None, collapse=True, htmx=True, n
 
     return {
         "relation_types": utils.relation_content_types(combination=(frommodel, tomodel)),
+        "relation_types_reverse": utils.relation_content_types(subj_model=tomodel, obj_model=frommodel),
         "instance": instance,
         "collapse": collapse,
         "htmx": htmx,
