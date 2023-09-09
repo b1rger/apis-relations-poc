@@ -3,48 +3,53 @@ from django.urls import reverse
 from django.shortcuts import get_object_or_404
 from django.contrib.contenttypes.models import ContentType
 
+
 from crispy_forms.layout import Submit, Layout, Div
 from crispy_forms.helper import FormHelper
 
 
 class RelationForm(ModelForm):
-    def __init__(self, fromsubj=None, hxnext=None, inverted=False, *args, **kwargs):
+    def __init__(self, frominstance=None, tocontenttype=None, hxnext=None, inverted=False, embedded=True, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if fromsubj:
-            if not inverted:
-                self.fields["subj"].disabled = True
-                self.fields["subj"].initial = get_object_or_404(self._meta.model.subj_model, id=fromsubj)
-                self.fields["obj"].queryset = self._meta.model.obj_model.objects.all()
-            else:
-                self.fields["obj"].disabled = True
-                self.fields["obj"].initial = get_object_or_404(self._meta.model.obj_model, id=fromsubj)
-                self.fields["subj"].queryset = self._meta.model.subj_model.objects.all()
+        subj, obj = "subj", "obj"
+        if inverted:
+            subj = "obj"
+            obj = "subj"
+        
+        if frominstance:
+            self.fields[subj].disabled = True
+            self.fields[subj].initial = frominstance
+            self.fields[subj].label = ContentType.objects.get_for_model(frominstance).name
 
-        self.fields["subj"].label = ContentType.objects.get_for_model(self._meta.model.subj_model).name
-        self.fields["obj"].label = ContentType.objects.get_for_model(self._meta.model.obj_model).name
+        if tocontenttype:
+            self.fields[obj].queryset = tocontenttype.model_class().objects.all()
+            self.fields[obj].label = tocontenttype.name
+
 
         self.helper = FormHelper(self)
 
-        contenttype = ContentType.objects.get_for_model(self._meta.model).pk
+        relcontenttype = ContentType.objects.get_for_model(self._meta.model)
 
-        args = [contenttype,]
-        if fromsubj:
-            args.append(fromsubj)
+        args = [relcontenttype.pk,]
+        if frominstance:
+            args.append(ContentType.objects.get_for_model(frominstance).pk)
+            args.append(frominstance.pk)
+        if tocontenttype:
+            args.append(tocontenttype.pk)
         hx_post = reverse("relation", args=args)
-        obj_contenttype = ContentType.objects.get_for_model(self._meta.model.obj_model)
         if inverted:
             hx_post = reverse("relationinverted", args=args)
-            obj_contenttype = ContentType.objects.get_for_model(self._meta.model.subj_model)
 
         if hxnext:
             hx_post += f"?hx-next={hxnext}"
 
-        self.helper.attrs = {
-            "hx-post": hx_post,
-            "hx-target": f"#{obj_contenttype.name}_table",
-            "hx-swap": "outerHTML",
-        }
+        if embedded:
+            self.helper.attrs = {
+                "hx-post": hx_post,
+                "hx-target": "previous table",
+                "hx-swap": "outerHTML",
+            }
 
         # layout stuff:
         div = Div(Div('subj', css_class='col-md-6'), Div('obj', css_class='col-md-6'), css_class='row')

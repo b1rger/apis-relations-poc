@@ -4,22 +4,22 @@
 {% for rel, model in relation_types %}
 
   {% if instance %}
-    {% url 'relation' rel.pk instance.pk as posturl %}
-    {% url 'relationpartial' rel.pk instance.pk as hxgeturl %}
+    {% url 'relation' rel.pk instancect.pk instance.pk contenttype.pk as hrefurl %}
+    {% url 'relationpartial' rel.pk instancect.pk instance.pk contenttype.pk as hxgeturl %}
     {% if rel in relation_types_reverse %}
-      {% url 'relationinverted' rel.pk instance.pk as posturl %}
-      {% url 'relationpartialinverted' rel.pk instance.pk as hxgeturl %}
+      {% url 'relationinverted' rel.pk instancect.pk instance.pk contenttype.pk as hrefurl %}
+      {% url 'relationpartialinverted' rel.pk instancect.pk instance.pk contenttype.pk as hxgeturl %}
     {% endif %}
   {% else %}
-    {% url 'relation' rel.pk as posturl %}
+    {% url 'relation' rel.pk as hrefurl %}
     {% url 'relationpartial' rel.pk as hxgeturl %}
   {% endif %}
 
-  <a href="{{ posturl }}"
+  <a href="{{ hrefurl }}"
      data-toggle="collapse"
-     data-target="#collapse-{{rel.model}}"
+     data-target="#collapse-{{rel.model}}-{{contenttype.name}}"
      hx-get="{{hxgeturl}}"
-     hx-target="#collapse-{{rel.model}}">
+     hx-target="#collapse-{{rel.model}}-{{contenttype.name}}">
        <button type="button" class="btn btn-sm">
          {% if rel in relation_types_reverse %}{{ model.name_reverse }}{% else %}{{ model.name }}{% endif %}
        </button>
@@ -27,5 +27,5 @@
 {% endfor %}
 
 {% for rel, model in relation_types %}
-<div class="collapse" id="collapse-{{ rel.model }}"></div>
+<div class="collapse" id="collapse-{{ rel.model }}-{{contenttype.name}}"></div>
 {% endfor %}

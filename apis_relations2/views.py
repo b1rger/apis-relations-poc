@@ -39,7 +39,7 @@ class RelationsListPartial(TemplateView):
 
     def get_context_data(self, *args, **kwargs):
         fromcontenttype = ContentType.objects.get_for_id(kwargs.get("fromcontenttype"))
-        frominstance = fromcontenttype.get_object_for_this_type(pk=kwargs.get("fromobjectid"))
+        frominstance = fromcontenttype.get_object_for_this_type(pk=kwargs.get("fromoid"))
         if tocontenttype := kwargs.get("tocontenttype"):
             tocontenttype = ContentType.objects.get_for_id(tocontenttype)
         ctx = super().get_context_data()
@@ -56,6 +56,7 @@ class RelationMixin:
     This mixin checks if the relation really
     exists and returns 404 if it does not.
     """
+    frominstance = None
 
     def dispatch(self, request, *args, **kwargs):
         # basic check before anything else: lookup the contenttype and see if we
@@ -63,6 +64,9 @@ class RelationMixin:
         self.contenttype = ContentType.objects.get_for_id(kwargs.get("contenttype"))
         if self.contenttype not in relation_content_types():
             raise Http404(f"Relation with id {kwargs['contenttype']} does not exist")
+        if fromoid := self.kwargs.get("fromoid"):
+            if fromcontenttype := self.kwargs.get("fromcontenttype"):
+                self.frominstance = ContentType.objects.get_for_id(fromcontenttype).get_object_for_this_type(pk=fromoid)
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -83,18 +87,15 @@ class RelationViewPartialFormOnly(RelationMixin, CreateView):
         # we set pass `hxnext` to the form, which then uses this value to add this
         # to the hx-post URL as `hx-next` - our view redirects to this path to let
         # the htmx request get the correct results
-        kwargs["hxnext"] = reverse("relationpartial", args=[self.contenttype.pk,])
+        kwargs["hxnext"] = reverse("relations", kwargs=self.request.resolver_match.kwargs)
 
-        if fromsubj := self.kwargs.get("fromsubj"):
-            fromcontenttype = ContentType.objects.get_for_model(self.contenttype.model_class().subj_model).pk
-            fromobjectid = fromsubj
-            tocontenttype = ContentType.objects.get_for_model(self.contenttype.model_class().obj_model).pk
-            hxnextargs = [fromcontenttype, fromobjectid, tocontenttype]
-            if self.inverted:
-                hxnextargs = list(reversed(hxnextargs))
-            kwargs["hxnext"] = reverse("relations", args=hxnextargs)
+        if self.frominstance:
+            fromcontenttype = ContentType.objects.get_for_model(self.frominstance).pk
+            tocontenttype = ContentType.objects.get_for_id(self.kwargs.get("tocontenttype"))
+            hxnextargs = [fromcontenttype, self.frominstance.pk, tocontenttype]
+            kwargs["frominstance"] = self.frominstance
+            kwargs["tocontenttype"] = tocontenttype
 
-        kwargs["fromsubj"] = self.kwargs.get("fromsubj")
         kwargs["inverted"] = self.inverted
         return kwargs
 
@@ -114,31 +115,22 @@ class RelationViewPartialFormOnly(RelationMixin, CreateView):
         return reverse("relation", args=args)
 
 
-# This should/could be combined with  RelationsListPartial (at least they use the same table generation)
-class RelationView(SingleTableMixin, RelationViewPartialFormOnly):
+# This should/could be combined with  RelationsListPartial
+class RelationView(RelationViewPartialFormOnly):
     """
     A view that provides both a list of relations *and* a form for
     creating new relations
     """
     template_name = "relations_list.html"
-    table_class = RelationTable
 
-    def get_table_kwargs(self):
-        model = self.contenttype.model_class().obj_model
-        if self.inverted:
-            model = self.contenttype.model_class().subj_model
-        tablecontenttype = ContentType.objects.get_for_model(model)
-        return {
-                "attrs": {"id": f"{tablecontenttype.model}_table"}
-                }
-
-    def get_queryset(self):
-        if fromsubj := self.kwargs.get("fromsubj"):
-            if self.inverted:
-                return self.contenttype.model_class().objects.filter(obj=fromsubj)
-            return self.contenttype.model_class().objects.filter(subj=fromsubj)
-        return self.contenttype.model_class().objects.all()
-
+    def get_context_data(self, *args, **kwargs):
+        fromcontenttype = ContentType.objects.get_for_id(self.kwargs.get("fromcontenttype"))
+        frominstance = fromcontenttype.get_object_for_this_type(pk=self.kwargs.get("fromoid"))
+        if tocontenttype := self.kwargs.get("tocontenttype"):
+            tocontenttype = ContentType.objects.get_for_id(tocontenttype)
+        ctx = super().get_context_data()
+        ctx["table"] = relations.relations_table(frominstance, tocontenttype)
+        return ctx
 
 #################################################
 # Views working with single Relation instances: #
@@ -150,9 +142,13 @@ class RelationUpdate(UpdateView):
     def get_object(self):
         return Relation.objects.get_subclass(id=self.kwargs["pk"])
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["embedded"] = False
+        return kwargs
+
     def get_form_class(self):
-        exclude = []
-        return modelform_factory(type(self.get_object()), form=RelationForm, exclude=exclude)
+        return modelform_factory(type(self.get_object()), form=RelationForm, exclude=[])
 
     def get_success_url(self):
         return reverse("relationupdate", args=[self.get_object().id,])
