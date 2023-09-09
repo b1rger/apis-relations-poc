@@ -105,6 +105,11 @@ class RelationView(RelationMixin, SingleTableMixin, CreateView):
 class RelationViewPartial(RelationView):
     template_name = "partial.html"
 
+    def get_context_data(self, *args, **kwargs):
+        ctx = super().get_context_data(*args, **kwargs)
+        ctx['table'] = None
+        return ctx
+
 
 #################################################
 # Views working with single Relation instances: #
