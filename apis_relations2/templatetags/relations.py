@@ -16,9 +16,8 @@ from apis_relations2.forms import RelationForm
 register = template.Library()
 
 
-# For django-tables2 to work we have to pass the request, see https://github.com/jieter/django-tables2/issues/321
 @register.simple_tag
-def relations_table2(instance=None, contenttype=None):
+def relations_table2(instance, contenttype=None):
     """
     List all relations that go from an instance to a contenttype.
     If no instance is passed, it lists all relations to a contenttype.
@@ -26,11 +25,21 @@ def relations_table2(instance=None, contenttype=None):
     All those lists can include different kinds of relations!
     """
     model = None
+    cssid = "table"
+    existing_relations = list()
+
     if contenttype:
         model = contenttype.model_class()
+        cssid = f"{contenttype.model}_table"
 
-    relation_types = utils.relation_content_types(any_model=model)
-    existing_relations = list()
+    # special case: when the contenttype is the same as the contenttype of
+    # the instance, we don't want *all* the relations where the instance
+    # occurs, but only those where it occurs together with another of its
+    # type
+    if ContentType.objects.get_for_model(instance) == contenttype:
+        relation_types = utils.relation_content_types(combination=(model, model))
+    else:
+        relation_types = utils.relation_content_types(any_model=model)
 
     for rel in relation_types:
         if instance:
@@ -41,7 +50,7 @@ def relations_table2(instance=None, contenttype=None):
     table = RelationTable
     if model:
         table = table_factory(model, RelationTable)
-    return table(existing_relations, attrs={"id": f"{contenttype.model}_table"} )
+    return table(existing_relations, attrs={"id": cssid})
 
 
 ## For django-tables2 to work we have to pass the request, see https://github.com/jieter/django-tables2/issues/321
@@ -133,15 +142,15 @@ def instance_is_related_to(instance: object) -> list[ContentType]:
     models = sorted(contenttypes.items(), key=lambda item: item[1].name)
     return [item[1] for item in models]
 
-
-@register.simple_tag
-def relations(relation_contenttype = None, fromsubj = None):
-    qs = Relation.objects.all()
-    if relation_contenttype:
-        qs = relation_contenttype.model_class().objects.all()
-    if fromsubj:
-        qs = qs.filter(Q(subj__id=fromsubj)|Q(obj__id=fromsubj))
-    return qs
+# not sure if that is actually used
+#@register.simple_tag
+#def relations(relation_contenttype = None, fromsubj = None):
+#    qs = Relation.objects.all()
+#    if relation_contenttype:
+#        qs = relation_contenttype.model_class().objects.all()
+#    if fromsubj:
+#        qs = qs.filter(Q(subj__id=fromsubj)|Q(obj__id=fromsubj))
+#    return qs
 
 
 #@register.simple_tag

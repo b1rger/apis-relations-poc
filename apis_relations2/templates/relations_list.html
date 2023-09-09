@@ -2,15 +2,11 @@
 {% load relations %}
 
 {% block content %}
-{% if contenttype %}
-  {% with contenttype|contenttypetoclass as model %}
-  <h1 class="text-center">{{ model.name }}</h1>
-  {% endwith %}
-{% endif %}
-{% if object %}
-  <h1 class="text-center">{{ object }}</h1>
-{% endif %}
-{% if not object and not contenttype %}
+
+{% if object %}<h1 class="text-center">{{ object }}</h1>{% endif %}
+{% if model %}<h1 class="text-center">{{ model.name }}</h1>{% endif %}
+
+{% if not object and not model %}
 {% relations_links collapse=False htmx=False %}
 {% endif %}
 

@@ -8,11 +8,11 @@ from crispy_forms.helper import FormHelper
 
 
 class RelationForm(ModelForm):
-    def __init__(self, fromsubj=None, hxnext=None, reversed=False, *args, **kwargs):
+    def __init__(self, fromsubj=None, hxnext=None, inverted=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         if fromsubj:
-            if not reversed:
+            if not inverted:
                 self.fields["subj"].disabled = True
                 self.fields["subj"].initial = get_object_or_404(self._meta.model.subj_model, id=fromsubj)
                 self.fields["obj"].queryset = self._meta.model.obj_model.objects.all()
@@ -33,8 +33,8 @@ class RelationForm(ModelForm):
             args.append(fromsubj)
         hx_post = reverse("relation", args=args)
         obj_contenttype = ContentType.objects.get_for_model(self._meta.model.obj_model)
-        if reversed:
-            hx_post = reverse("relationreversed", args=args)
+        if inverted:
+            hx_post = reverse("relationinverted", args=args)
             obj_contenttype = ContentType.objects.get_for_model(self._meta.model.subj_model)
 
         if hxnext:
@@ -48,7 +48,7 @@ class RelationForm(ModelForm):
 
         # layout stuff:
         div = Div(Div('subj', css_class='col-md-6'), Div('obj', css_class='col-md-6'), css_class='row')
-        if reversed:
+        if inverted:
             div = Div(Div('obj', css_class='col-md-6'), Div('subj', css_class='col-md-6'), css_class='row')
 
         # we have to explicetly add the rest of the fields
