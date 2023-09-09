@@ -1,3 +1,4 @@
+from django.views.generic.base import TemplateView
 from django.views.generic.list import ListView
 from django.views.generic.edit import CreateView, FormView, ProcessFormView, FormMixin, ProcessFormView, UpdateView, DeleteView
 from django.views.generic.detail import DetailView
@@ -13,6 +14,7 @@ from .models import Relation
 from .forms import RelationForm
 from .utils import relation_content_types
 from .tables import RelationTable
+from .templatetags import relations
 
 
 class RelationsList(SingleTableView):
@@ -22,6 +24,27 @@ class RelationsList(SingleTableView):
 
     def get_queryset(self):
         return super().get_queryset().select_subclasses()
+
+
+class RelationsListPartial(TemplateView):
+    template_name = "partial.html"
+    fromcontenttype = None
+    tocontenttype = None
+    frominstance = None
+
+    def dispatch(self, request, *args, **kwargs):
+        if fromcontenttype := kwargs.get("fromcontenttype"):
+            self.fromcontenttype = ContentType.objects.get_for_id(fromcontenttype)
+            if frominstance := kwargs.get("frominstance"):
+                self.frominstance = self.fromcontenttype.get_object_for_this_type(pk=frominstance)
+        if tocontenttype := kwargs.get("tocontenttype"):
+            self.tocontenttype = ContentType.objects.get_for_id(tocontenttype)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, *args, **kwargs):
+        ctx = super().get_context_data()
+        ctx["table"] = relations.relations_table2(self.frominstance, self.tocontenttype)
+        return ctx
 
 
 class RelationMixin:
@@ -39,10 +62,16 @@ class RelationMixin:
         return modelform_factory(self.contenttype.model_class(), form=RelationForm, exclude=exclude)
 
     def get_form_kwargs(self):
+        hxnextargs = [ContentType.objects.get_for_model(self.contenttype.model_class().subj_model).pk,]
+        if fromsubj := self.kwargs.get("fromsubj"):
+            hxnextargs.append(fromsubj)
+            hxnextargs.append(ContentType.objects.get_for_model(self.contenttype.model_class().obj_model).pk)
+        if self.reversed:
+            hxnextargs = list(reversed(hxnextargs))
         kwargs = super().get_form_kwargs()
         kwargs["fromsubj"] = self.kwargs.get("fromsubj")
         kwargs["reversed"] = self.reversed
-        kwargs["next"] = self.request.GET.get("next")
+        kwargs["hxnext"] = reverse("relations", args=hxnextargs)
         return kwargs
 
     def get_context_data(self, *args, **kwargs):
@@ -63,33 +92,23 @@ class RelationView(RelationMixin, SingleTableMixin, CreateView):
     table_class = RelationTable
 
     def get_success_url(self):
+        if hxnext := self.request.GET.get("hx-next"):
+            return hxnext
         args = [self.contenttype.id,]
         if fromsubj := self.kwargs.get("fromsubj"):
             args.append(fromsubj)
+        if self.reversed:
+            return reverse("relationreversed", args=args)
         return reverse("relation", args=args)
 
 
-class RelationViewPartial(RelationMixin, SingleTableMixin, CreateView):
+class RelationViewPartial(RelationView):
     template_name = "partial.html"
-    table_class = RelationTable
 
-    def get_success_url(self):
-        args = [self.contenttype.pk, self.kwargs.get("fromsubj")]
-        url = reverse("relationpartial", args=args) + "?success"
-        if self.reversed:
-            url = reverse("relationpartialreversed", args=args) + "?success"
-        if next := self.request.GET.get("next"):
-            url += f"&next={next}"
-        return url
 
-    def get_context_data(self):
-        ctx = super().get_context_data()
-        if "success" in self.request.GET:
-            ctx['form'] = None
-        else:
-            ctx['table'] = None
-        return ctx
-
+#################################################
+# Views working with single Relation instances: #
+#################################################
 
 class RelationUpdate(UpdateView):
     template_name = "relations_list.html"
