@@ -3,11 +3,10 @@
 
 {% block content %}
 
-{% if object %}<h1 class="text-center">{{ object }}</h1>{% endif %}
-{% if model %}<h1 class="text-center">{{ model.name }}</h1>{% endif %}
-
-{% if not object and not model %}
-{% relations_links collapse=False htmx=False %}
+{% if model %}
+<h1 class="text-center">{{ model.name }}</h1>
+{% else %}
+{% relations_links %}
 {% endif %}
 
 {% if table %}

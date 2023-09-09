@@ -17,7 +17,7 @@ register = template.Library()
 
 
 @register.simple_tag
-def relations_table2(instance, contenttype=None):
+def relations_table(instance, contenttype=None):
     """
     List all relations that go from an instance to a contenttype.
     If no instance is passed, it lists all relations to a contenttype.
@@ -53,42 +53,8 @@ def relations_table2(instance, contenttype=None):
     return table(existing_relations, attrs={"id": cssid})
 
 
-## For django-tables2 to work we have to pass the request, see https://github.com/jieter/django-tables2/issues/321
-#@register.inclusion_tag("partials/relations_table.html")
-#def relations_table(request, instance=None, contenttype=None):
-#    """
-#    List all relations that go from an instance to a contenttype.
-#    If no instance is passed, it lists all relations to a contenttype.
-#    If neither instance nor contenttype are passed, it lists all relations.
-#    All those lists can include different kinds of relations!
-#    """
-#    model = None
-#    if contenttype:
-#        model = contenttype.model_class()
-#
-#    relation_types = utils.relation_content_types(any_model=model)
-#    existing_relations = list()
-#
-#    for rel in relation_types:
-#        if instance:
-#            existing_relations.extend(list(rel.model_class().objects.filter(Q(subj=instance)|Q(obj=instance))))
-#        else:
-#            existing_relations.extend(list(rel.model_class().objects.all()))
-#
-#    table = RelationTable
-#    if model:
-#        table = table_factory(model, RelationTable)
-#    return {
-#            "request": request,
-#            "instance": instance,
-#            "table": table(existing_relations),
-#            "contenttype": contenttype,
-#    }
-
-
-
 @register.inclusion_tag("partials/relations_links.html")
-def relations_links(instance=None, contenttype=None, collapse=True, htmx=True, next=None):
+def relations_links(instance=None, contenttype=None):
     tomodel = None
     if contenttype:
         tomodel = contenttype.model_class()
@@ -98,12 +64,9 @@ def relations_links(instance=None, contenttype=None, collapse=True, htmx=True, n
         frommodel = type(instance)
 
     return {
-        "relation_types": utils.relation_content_types(combination=(frommodel, tomodel)),
+        "relation_types": [(ct, ct.model_class()) for ct in utils.relation_content_types(combination=(frommodel, tomodel))],
         "relation_types_reverse": utils.relation_content_types(subj_model=tomodel, obj_model=frommodel),
         "instance": instance,
-        "collapse": collapse,
-        "htmx": htmx,
-        "next": next,
     }
 
 
@@ -141,31 +104,6 @@ def instance_is_related_to(instance: object) -> list[ContentType]:
     contenttypes = ContentType.objects.get_for_models(*models)
     models = sorted(contenttypes.items(), key=lambda item: item[1].name)
     return [item[1] for item in models]
-
-# not sure if that is actually used
-#@register.simple_tag
-#def relations(relation_contenttype = None, fromsubj = None):
-#    qs = Relation.objects.all()
-#    if relation_contenttype:
-#        qs = relation_contenttype.model_class().objects.all()
-#    if fromsubj:
-#        qs = qs.filter(Q(subj__id=fromsubj)|Q(obj__id=fromsubj))
-#    return qs
-
-
-#@register.simple_tag
-#def all_relations() -> set[ContentType]:
-#    return utils.relation_content_types()
-
-
-@register.filter
-def contenttypetoclass(ct: ContentType) -> object:
-    return ct.model_class()
-
-
-#@register.filter
-#def modeltocontenttype(model: object) -> ContentType:
-#    return ContentType.objects.get_for_model(model)
 
 
 @register.simple_tag

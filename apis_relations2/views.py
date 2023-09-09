@@ -43,7 +43,7 @@ class RelationsListPartial(TemplateView):
         if tocontenttype := kwargs.get("tocontenttype"):
             tocontenttype = ContentType.objects.get_for_id(tocontenttype)
         ctx = super().get_context_data()
-        ctx["table"] = relations.relations_table2(frominstance, tocontenttype)
+        ctx["table"] = relations.relations_table(frominstance, tocontenttype)
         return ctx
 
 
@@ -114,6 +114,7 @@ class RelationViewPartialFormOnly(RelationMixin, CreateView):
         return reverse("relation", args=args)
 
 
+# This should/could be combined with  RelationsListPartial (at least they use the same table generation)
 class RelationView(SingleTableMixin, RelationViewPartialFormOnly):
     """
     A view that provides both a list of relations *and* a form for
@@ -121,6 +122,15 @@ class RelationView(SingleTableMixin, RelationViewPartialFormOnly):
     """
     template_name = "relations_list.html"
     table_class = RelationTable
+
+    def get_table_kwargs(self):
+        model = self.contenttype.model_class().obj_model
+        if self.inverted:
+            model = self.contenttype.model_class().subj_model
+        tablecontenttype = ContentType.objects.get_for_model(model)
+        return {
+                "attrs": {"id": f"{tablecontenttype.model}_table"}
+                }
 
     def get_queryset(self):
         if fromsubj := self.kwargs.get("fromsubj"):
