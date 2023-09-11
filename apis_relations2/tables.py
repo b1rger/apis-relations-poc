@@ -21,4 +21,4 @@ class RelationTable(tables.Table):
             "edit"
         ]
         sequence = tuple(fields)
-        attrs = {"class": "table table-hover table-striped table-condensed"}
+        attrs = {"class": "table table-hover table-striped table-condensed", "id": "foo", "hx-swap-oob": "true" }

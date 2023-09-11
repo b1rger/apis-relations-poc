@@ -68,3 +68,13 @@ class Relation(models.Model, metaclass=RelationModelBase):
     @classmethod
     def obj_list(cls):
         return cls.obj_model if isinstance(cls.obj_model, list) else [cls.obj_model]
+
+    def clean(self):
+        if self.subj:
+            subj = RootObject.objects_inheritance.get_subclass(id=self.subj.id)
+            if not type(subj) in self.subj_list():
+                raise ValidationError(f"{self.subj} is not of any type in {self.subj_model}")
+        if self.obj:
+            obj = RootObject.objects_inheritance.get_subclass(id=self.obj.id)
+            if not type(obj) in self.obj_list():
+                raise ValidationError(f"{self.obj} is not of any type in {self.obj_model}")

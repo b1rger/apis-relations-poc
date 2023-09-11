@@ -1,16 +1,12 @@
-from django.views.generic.base import TemplateView
-from django.views.generic.edit import CreateView, FormView, ProcessFormView, FormMixin, ProcessFormView, UpdateView, DeleteView
+from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.contrib.contenttypes.models import ContentType
 from django.forms import modelform_factory
 from django.urls import reverse
 from django.http import Http404, HttpResponse
 
-from django_tables2 import SingleTableView, SingleTableMixin
-
 from .models import Relation
 from .forms import RelationForm
 from .utils import relation_content_types
-from .tables import RelationTable
 from .templatetags import relations
 
 
@@ -22,12 +18,11 @@ class RelationView(CreateView):
     contenttype = None
     frominstance = None
     inverted = False
-    template_name = "relations_list.html"
+    partial = False
+    template_name = "relations/list.html"
     tocontenttype = None
 
     def dispatch(self, request, *args, **kwargs):
-        # basic check before anything else: lookup the contenttype and see if we
-        # are really working with a relation content type
         if contenttype := kwargs.get("contenttype"):
             self.contenttype = ContentType.objects.get_for_id(contenttype)
             if self.contenttype not in relation_content_types():
@@ -38,7 +33,8 @@ class RelationView(CreateView):
         if tocontenttype := self.kwargs.get("tocontenttype"):
             self.tocontenttype = ContentType.objects.get_for_id(tocontenttype)
         if "partial" in self.request.GET:
-            self.template_name = "partial.html"
+            self.template_name = "relations/partial.html"
+            self.partial = True
         return super().dispatch(request, *args, **kwargs)
 
     def get_form_class(self):
@@ -50,22 +46,18 @@ class RelationView(CreateView):
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
 
-        # we set pass `hxnext` to the form, which then uses this value to add this
-        # to the hx-post URL as `hx-next` - our view redirects to this path to let
-        # the htmx request get the correct results
-        kwargs["hxnext"] = reverse("relation", kwargs=self.request.resolver_match.kwargs) + "?partial%26tableonly"
-
         kwargs["frominstance"] = self.frominstance
         kwargs["tocontenttype"] = self.tocontenttype
         kwargs["inverted"] = self.inverted
         return kwargs
 
     def get_success_url(self):
-        if hxnext := self.request.GET.get("hx-next"):
-            return hxnext
+        url = reverse("relation", kwargs=self.request.resolver_match.kwargs)
         if self.inverted:
-            return reverse("relationinverted", kwargs=self.request.resolver_match.kwargs)
-        return reverse("relation", kwargs=self.request.resolver_match.kwargs)
+            url = reverse("relationinverted", kwargs=self.request.resolver_match.kwargs)
+        if self.partial:
+            url += "?partial"
+        return url
 
     def get_context_data(self, *args, **kwargs):
         ctx = super().get_context_data()
@@ -85,12 +77,13 @@ class RelationView(CreateView):
         ctx["table"] = relations.relations_table(relationtype = self.contenttype, instance=self.frominstance, tocontenttype=tocontenttype)
         return ctx
 
+
 #################################################
 # Views working with single Relation instances: #
 #################################################
 
 class RelationUpdate(UpdateView):
-    template_name = "relations_list.html"
+    template_name = "relations/list.html"
 
     def get_object(self):
         return Relation.objects.get_subclass(id=self.kwargs["pk"])
