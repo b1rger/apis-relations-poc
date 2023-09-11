@@ -53,7 +53,7 @@ def relations_table(relationtype=None, instance=None, tocontenttype=None):
     return table(existing_relations)
 
 
-@register.inclusion_tag("partials/relations_links.html")
+@register.inclusion_tag("templatetags/relations_links.html")
 def relations_links(instance=None, tocontenttype=None, htmx=False):
     """
     Provide a list of links to relation views; If `instance` is passed,
