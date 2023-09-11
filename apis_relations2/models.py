@@ -25,24 +25,56 @@ class Relation(models.Model, metaclass=RelationModelBase):
     subj = models.ForeignKey(RootObject, on_delete=models.SET_NULL, null=True, related_name="relations_as_subj")
     obj = models.ForeignKey(RootObject, on_delete=models.SET_NULL, null=True, related_name="relations_as_obj")
 
-    metadata = models.JSONField(null=True)
-
     objects = InheritanceManager()
 
     def save(self, *args, **kwargs):
-        subj = RootObject.objects_inheritance.get_subclass(id=self.subj.id)
-        obj = RootObject.objects_inheritance.get_subclass(id=self.obj.id)
-        if not isinstance(subj, self.subj_model):
-            raise ValidationError(f"{self.subj} is not of type {self.subj_model._meta.label}")
-        if not isinstance(obj, self.obj_model):
-            raise ValidationError(f"{self.obj} is not of type {self.obj_model._meta.label}")
+        if self.subj:
+            subj = RootObject.objects_inheritance.get_subclass(id=self.subj.id)
+            if not type(subj) in self.subj_list():
+                raise ValidationError(f"{self.subj} is not of any type in {self.subj_model}")
+        if self.obj:
+            obj = RootObject.objects_inheritance.get_subclass(id=self.obj.id)
+            if not type(obj) in self.obj_list():
+                raise ValidationError(f"{self.obj} is not of any type in {self.obj_model}")
         super().save(*args, **kwargs)
 
+    @property
     def subj_to_obj_text(self):
+        if hasattr(self, "name"):
+            return f"{self.subj} {self.name} {self.obj}"
         return f"{self.subj} relation to {self.obj}"
 
+    @property
     def obj_to_subj_text(self):
+        if hasattr(self, "reverse_name"):
+            return f"{self.subj} {self.reverse_name} {self.obj}"
         return f"{self.obj} relation to {self.subj}"
 
     def __str__(self):
-        return self.subj_to_obj_text()
+        return self.subj_to_obj_text
+
+    @classmethod
+    def is_subj(cls, something):
+        return something in cls.subj_list()
+
+    @classmethod
+    def is_obj(cls, something):
+        return something in cls.obj_list()
+
+    @classmethod
+    def subj_list(cls):
+        return cls.subj_model if isinstance(cls.subj_model, list) else [cls.subj_model]
+
+    @classmethod
+    def obj_list(cls):
+        return cls.obj_model if isinstance(cls.obj_model, list) else [cls.obj_model]
+
+    def clean(self):
+        if self.subj:
+            subj = RootObject.objects_inheritance.get_subclass(id=self.subj.id)
+            if not type(subj) in self.subj_list():
+                raise ValidationError(f"{self.subj} is not of any type in {self.subj_model}")
+        if self.obj:
+            obj = RootObject.objects_inheritance.get_subclass(id=self.obj.id)
+            if not type(obj) in self.obj_list():
+                raise ValidationError(f"{self.obj} is not of any type in {self.obj_model}")
