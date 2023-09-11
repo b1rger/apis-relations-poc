@@ -22,7 +22,7 @@ class RelationView(CreateView):
     contenttype = None
     frominstance = None
     inverted = False
-    template_name = "relations_list.html"
+    template_name = "relations/list.html"
     tocontenttype = None
 
     def dispatch(self, request, *args, **kwargs):
@@ -38,7 +38,7 @@ class RelationView(CreateView):
         if tocontenttype := self.kwargs.get("tocontenttype"):
             self.tocontenttype = ContentType.objects.get_for_id(tocontenttype)
         if "partial" in self.request.GET:
-            self.template_name = "partial.html"
+            self.template_name = "relations/partial.html"
         return super().dispatch(request, *args, **kwargs)
 
     def get_form_class(self):
@@ -90,7 +90,7 @@ class RelationView(CreateView):
 #################################################
 
 class RelationUpdate(UpdateView):
-    template_name = "relations_list.html"
+    template_name = "relations/list.html"
 
     def get_object(self):
         return Relation.objects.get_subclass(id=self.kwargs["pk"])
