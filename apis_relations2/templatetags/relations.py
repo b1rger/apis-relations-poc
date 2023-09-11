@@ -1,14 +1,16 @@
 from django import template
 from django.db.models import Q
 from django.contrib.contenttypes.models import ContentType
-# from django.forms import modelform_factory
+from django.forms import modelform_factory
 from django.templatetags.static import static
 from django.utils.html import format_html
 from django_tables2.tables import table_factory
+from django.template import loader
 
 from apis_relations2.tables import RelationTable
 from apis_relations2.models import Relation
 from apis_relations2 import utils
+from apis_relations2.forms import RelationForm
 # from apis_relations2.forms import RelationForm
 
 register = template.Library()
@@ -81,13 +83,25 @@ def relations_links(instance=None, tocontenttype=None, htmx=False):
     }
 
 
-#@register.simple_tag
-#def relation_form(relation: ContentType, instance=None):
-#    initial = {}
-#    if instance:
-#        initial['subj'] = instance
-#    exclude = []
-#    return modelform_factory(relation.model_class(), form=RelationForm, exclude=exclude)(initial=initial)
+@register.inclusion_tag("relations/relation.html")
+def relations_partial(request, contenttype=None, instance=None, tocontenttype=None, htmx=False, links=False, hxnext=None):
+    form = None
+    table = None
+    if "formonly" not in request.GET:
+        table = relations_table(instance=instance, tocontenttype=tocontenttype)
+    fromcontenttype = ContentType.objects.get_for_model(instance)
+    links_context = relations_links(instance=instance, tocontenttype=tocontenttype, htmx=htmx)
+    if contenttype:
+        form = modelform_factory(contenttype.model_class(), form=RelationForm, exclude=[])(frominstance=instance, tocontenttype=tocontenttype, hxnext=hxnext)
+    return {
+            "request": request,
+            "table": table,
+            "instance": instance,
+            "tocontenttype": tocontenttype,
+            "htmx": htmx,
+            "links": links,
+            "form": form,
+    }
 
 
 def contenttype_can_be_related_to(ct: ContentType) -> list[ContentType]:

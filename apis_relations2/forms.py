@@ -1,7 +1,7 @@
 from django.forms import ModelForm
 from django.urls import reverse
-from django.shortcuts import get_object_or_404
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
 
 
 from crispy_forms.layout import Submit, Layout, Div
@@ -16,7 +16,7 @@ class RelationForm(ModelForm):
         if inverted:
             subj = "obj"
             obj = "subj"
-        
+
         if frominstance:
             self.fields[subj].disabled = True
             self.fields[subj].initial = frominstance
@@ -25,7 +25,6 @@ class RelationForm(ModelForm):
         if tocontenttype:
             self.fields[obj].queryset = tocontenttype.model_class().objects.all()
             self.fields[obj].label = tocontenttype.name
-
 
         self.helper = FormHelper(self)
 
@@ -40,14 +39,15 @@ class RelationForm(ModelForm):
         hx_post = reverse("relation", args=args)
         if inverted:
             hx_post = reverse("relationinverted", args=args)
+        hx_post += "?partial"
 
         if hxnext:
-            hx_post += f"?hx-next={hxnext}"
+            hx_post += f"&hx-next={hxnext}"
 
         if embedded:
             self.helper.attrs = {
                 "hx-post": hx_post,
-                "hx-target": "previous table",
+                "hx-target": "closest #relation",
                 "hx-swap": "outerHTML",
             }
 
@@ -64,3 +64,8 @@ class RelationForm(ModelForm):
                 *fields,
         )
         self.helper.add_input(Submit("submit", "Submit", css_class="btn-primary"))
+
+    #def clean(self):
+    #    subj = self.cleaned_data["subj"]
+    #    if not type(subj) in self._meta.model.subj_list():
+    #        raise ValidationError("Subj of wrong type")

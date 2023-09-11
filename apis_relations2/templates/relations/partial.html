@@ -1,11 +1,2 @@
-{% if form %}
-{% if model %}
-<h2 class="text-center">{{ model.name }}</h2>
-{% endif %}
-{% load crispy_forms_tags %}
-{% crispy form %}
-{% endif %}
-{% if table %}
-{% load render_table from django_tables2 %}
-{% render_table table %}
-{% endif %}
+{% load relations %}
+{% relations_partial request contenttype=contenttype instance=instance tocontenttype=tocontenttype htmx=True hxnext=hxnext %}

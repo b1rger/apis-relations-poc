@@ -5,8 +5,6 @@ from django.forms import modelform_factory
 from django.urls import reverse
 from django.http import Http404, HttpResponse
 
-from django_tables2 import SingleTableView, SingleTableMixin
-
 from .models import Relation
 from .forms import RelationForm
 from .utils import relation_content_types
@@ -53,7 +51,7 @@ class RelationView(CreateView):
         # we set pass `hxnext` to the form, which then uses this value to add this
         # to the hx-post URL as `hx-next` - our view redirects to this path to let
         # the htmx request get the correct results
-        kwargs["hxnext"] = reverse("relation", kwargs=self.request.resolver_match.kwargs) + "?partial%26tableonly"
+        kwargs["hxnext"] = reverse("relation", kwargs=self.request.resolver_match.kwargs) + "?partial"
 
         kwargs["frominstance"] = self.frominstance
         kwargs["tocontenttype"] = self.tocontenttype
@@ -71,10 +69,6 @@ class RelationView(CreateView):
         ctx = super().get_context_data()
         if self.contenttype:
             ctx['model'] = self.contenttype.model_class()
-        if "formonly" in self.request.GET:
-            return ctx
-        if "tableonly" in self.request.GET:
-            ctx["form"] = None
         # if we are not working with a specific relation
         # there is no need to present a form:
         if not self.contenttype:
@@ -82,7 +76,11 @@ class RelationView(CreateView):
 
         if tocontenttype := self.kwargs.get("tocontenttype"):
             tocontenttype = ContentType.objects.get_for_id(tocontenttype)
-        ctx["table"] = relations.relations_table(relationtype = self.contenttype, instance=self.frominstance, tocontenttype=tocontenttype)
+        ctx["tocontenttype"] = tocontenttype
+        ctx["instance"] = self.frominstance
+        ctx["contenttype"] = self.contenttype
+        ctx["hxnext"] = reverse("relation", kwargs=self.request.resolver_match.kwargs) + "?partial"
+        #ctx["table"] = relations.relations_table(relationtype = self.contenttype, instance=self.frominstance, tocontenttype=tocontenttype)
         return ctx
 
 #################################################

@@ -1,0 +1,17 @@
+{% load relations %}
+<div id="relation">
+{% if table %}
+{% load render_table from django_tables2 %}
+{% render_table table %}
+{% if links %}
+{% relations_links instance tocontenttype htmx %}
+{% endif %}
+{% endif %}
+{% if form %}
+{% if model %}
+<h2 class="text-center">{{ model.name }}</h2>
+{% endif %}
+{% load crispy_forms_tags %}
+{% crispy form %}
+{% endif %}
+</div>
