@@ -1,9 +1,7 @@
-from itertools import chain
-
 from django import template
 from django.db.models import Q
 from django.contrib.contenttypes.models import ContentType
-from django.forms import modelform_factory
+# from django.forms import modelform_factory
 from django.templatetags.static import static
 from django.utils.html import format_html
 from django_tables2.tables import table_factory
@@ -11,35 +9,37 @@ from django_tables2.tables import table_factory
 from apis_relations2.tables import RelationTable
 from apis_relations2.models import Relation
 from apis_relations2 import utils
-from apis_relations2.forms import RelationForm
+# from apis_relations2.forms import RelationForm
 
 register = template.Library()
 
 
 @register.simple_tag
-def relations_table(instance, contenttype=None):
+def relations_table(relationtype=None, instance=None, tocontenttype=None):
     """
-    List all relations that go from an instance to a contenttype.
-    If no instance is passed, it lists all relations to a contenttype.
-    If neither instance nor contenttype are passed, it lists all relations.
-    All those lists can include different kinds of relations!
+    List all relations of type `relationtype` that go from `instance` to
+    something with type `contenttype`.
+    If no `tocontenttype` is passed, it lists all relations from and to
+    instance.
+    If no `relationtype` is passed, it lists all relations.
     """
     model = None
-    cssid = "table"
     existing_relations = list()
 
-    if contenttype:
-        model = contenttype.model_class()
-        cssid = f"{contenttype.model}_table"
+    if tocontenttype:
+        model = tocontenttype.model_class()
 
-    # special case: when the contenttype is the same as the contenttype of
-    # the instance, we don't want *all* the relations where the instance
-    # occurs, but only those where it occurs together with another of its
-    # type
-    if ContentType.objects.get_for_model(instance) == contenttype:
-        relation_types = utils.relation_content_types(combination=(model, model))
+    if relationtype:
+        relation_types = [relationtype]
     else:
-        relation_types = utils.relation_content_types(any_model=model)
+        # special case: when the contenttype is the same as the contenttype of
+        # the instance, we don't want *all* the relations where the instance
+        # occurs, but only those where it occurs together with another of its
+        # type
+        if instance and ContentType.objects.get_for_model(instance) == tocontenttype:
+            relation_types = utils.relation_content_types(combination=(model, model))
+        else:
+            relation_types = utils.relation_content_types(any_model=model)
 
     for rel in relation_types:
         if instance:
@@ -50,14 +50,20 @@ def relations_table(instance, contenttype=None):
     table = RelationTable
     if model:
         table = table_factory(model, RelationTable)
-    return table(existing_relations, attrs={"id": cssid})
+    return table(existing_relations)
 
 
 @register.inclusion_tag("partials/relations_links.html")
-def relations_links(instance=None, contenttype=None):
+def relations_links(instance=None, tocontenttype=None, htmx=False):
+    """
+    Provide a list of links to relation views; If `instance` is passed,
+    it only links to relations where an `instance` type can be part of.
+    If `contenttype` is passed, it links only to relations that can occur
+    between the `instance` contenttype and the `contentttype`.
+    """
     tomodel = None
-    if contenttype:
-        tomodel = contenttype.model_class()
+    if tocontenttype:
+        tomodel = tocontenttype.model_class()
 
     frommodel = None
     instancect = None
@@ -70,17 +76,18 @@ def relations_links(instance=None, contenttype=None):
         "relation_types_reverse": utils.relation_content_types(subj_model=tomodel, obj_model=frommodel),
         "instance": instance,
         "instancect": instancect,
-        "contenttype": contenttype,
+        "contenttype": tocontenttype,
+        "htmx": htmx,
     }
 
 
-@register.simple_tag
-def relation_form(relation: ContentType, instance=None):
-    initial = {}
-    if instance:
-        initial['subj'] = instance
-    exclude = []
-    return modelform_factory(relation.model_class(), form=RelationForm, exclude=exclude)(initial=initial)
+#@register.simple_tag
+#def relation_form(relation: ContentType, instance=None):
+#    initial = {}
+#    if instance:
+#        initial['subj'] = instance
+#    exclude = []
+#    return modelform_factory(relation.model_class(), form=RelationForm, exclude=exclude)(initial=initial)
 
 
 def contenttype_can_be_related_to(ct: ContentType) -> list[ContentType]:
@@ -116,5 +123,8 @@ def instance_is_related_to(instance: object) -> list[ContentType]:
 
 @register.simple_tag
 def relations_css() -> str:
+    """
+    include a custom `relations.css` file
+    """
     cssfile = static("relations.css")
     return format_html('<link rel="stylesheet" href="{}">', cssfile)
